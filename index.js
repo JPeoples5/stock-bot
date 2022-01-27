@@ -9,21 +9,24 @@ const client = new Discord.Client({
 
 client.on("ready", () => {
 	console.log(`${client.user.tag} is alive and awake`)
-	getStockPrice("VOO").then((res) => console.log(res["Global Quote"]["05. price"]))
 })
 
 client.on("messageCreate", (message) => {
-	if (message.author.bot) return
-	if (2 > message.content.length) return
-	if (message.content.length > 6) return
+	if (!isValidTickerSymbol(message)) return
+	let ticker = message.content.slice(1).toUpperCase() // remove $ and format to upperCase
 
-	getStockPrice().then((res) => message.reply(res["Global Quote"]["05. price"]))
+	// Create Stock Price Message and reply to the inquiry
+	getStockPrice(ticker).then((res) => {
+		if (res["Global Quote"]["05. price"]) {
+			message.reply(`${res["Global Quote"]["05. price"]}  (${res["Global Quote"]["10. change percent"]})`)
+		}
+	})
 })
 
-async function getStockPrice() {
+async function getStockPrice(ticker) {
 	try {
 		let res = await axios({
-			url: `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=VOO&apikey=${process.env.AV_KEY}`,
+			url: `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${ticker}&apikey=${process.env.AV_KEY}`,
 			method: "get",
 			timeout: 8000,
 			headers: {
@@ -33,7 +36,22 @@ async function getStockPrice() {
 		return res.data
 	} catch (err) {
 		console.error(err)
+		return "invalid ticker symbol"
 	}
+}
+
+function isValidTickerSymbol(message) {
+	if (message.author.bot) return false
+	if (2 > message.content.length) return false
+	if (message.content.length > 6) return false
+	if (message.content.charAt(0) != "$") return false
+	if (stringContainsNumber(message.content)) return false
+
+	return true
+}
+
+function stringContainsNumber(_string) {
+	return /\d/.test(_string)
 }
 
 client.login(process.env.MY_TOKEN)
