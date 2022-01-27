@@ -18,7 +18,9 @@ client.on("messageCreate", (message) => {
 	// Create Stock Price Message and reply to the inquiry
 	getStockPrice(ticker).then((res) => {
 		if (res["Global Quote"]["05. price"]) {
-			message.reply(`${res["Global Quote"]["05. price"]}  (${res["Global Quote"]["10. change percent"]})`)
+			let price = res["Global Quote"]["05. price"].slice(0, -2) //remove extra 00
+			let changePercent = res["Global Quote"]["10. change percent"]
+			message.reply(`$${price}  (${changePercent})`)
 		}
 	})
 })
@@ -36,21 +38,21 @@ async function getStockPrice(ticker) {
 		return res.data
 	} catch (err) {
 		console.error(err)
-		return "invalid ticker symbol"
+		return "Invalid ticker symbol"
 	}
 }
 
 function isValidTickerSymbol(message) {
 	if (message.author.bot) return false
+	if (message.content.charAt(0) != "$") return false
 	if (2 > message.content.length) return false
 	if (message.content.length > 6) return false
-	if (message.content.charAt(0) != "$") return false
-	if (stringContainsNumber(message.content)) return false
+	if (containsNumber(message.content)) return false
 
 	return true
 }
 
-function stringContainsNumber(_string) {
+function containsNumber(_string) {
 	return /\d/.test(_string)
 }
 
